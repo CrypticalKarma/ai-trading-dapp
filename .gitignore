@@ -27,3 +27,6 @@ Thumbs.db
 
 backend/.env
 ai-trading-dapp/
+ai-trading-dapp/
+ai-trading-dashboard/
+frontend/node_modules/
