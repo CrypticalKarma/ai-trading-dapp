@@ -1,39 +1,38 @@
-// backend/server.js
-import express from "express";
-import dotenv from "dotenv";
-dotenv.config({ path: "./.env" });
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { analyzeTrades } from './tradeAnalyzer.js';
 
-// Check if the API key is loaded
-console.log("OPENAI_API_KEY:", process.env.OPENAI_API_KEY);
-
-import walletRoutes from "../frontend/src/routes/wallet.js";
-import { analyzeTrades } from "./tradeAnalyzer.js";
+dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 
+app.use(cors());
 app.use(express.json());
 
-// Root endpoint
-app.get("/", (req, res) => {
-  res.send("AI Trading DApp Backend is running!");
+// Root route to confirm server is running
+app.get('/', (req, res) => {
+  res.send('AI Trading Dapp backend is running!');
 });
 
-// Wallet routes
-app.use("/wallet", walletRoutes);
+// API route for conversational trading mentor
+app.post('/api/analyze', async (req, res) => {
+  const { walletAddress, symbols, userQuestion } = req.body;
 
-// AI Trade Analysis endpoint
-app.get("/api/analyze", async (req, res) => {
+  if (!walletAddress || !symbols || symbols.length === 0) {
+    return res.status(400).json({ error: "walletAddress and symbols are required." });
+  }
+
   try {
-    const insights = await analyzeTrades();
-    res.json({ insights });
+    const analysis = await analyzeTrades(walletAddress, symbols, userQuestion || "");
+    res.json(analysis);
   } catch (err) {
-    console.error("Error in /api/analyze:", err);
-    res.status(500).json({ error: "Failed to analyze trades" });
+    console.error("Error in /api/analyze route:", err);
+    res.status(500).json({ error: "Failed to analyze trades." });
   }
 });
 
-// Start server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });

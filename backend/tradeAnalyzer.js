@@ -1,53 +1,59 @@
-import OpenAI from "openai";
-import dotenv from "dotenv";
-import fs from "fs";
-import path from "path";
-
+import dotenv from 'dotenv';
 dotenv.config();
-
-console.log("Loaded OPENAI_API_KEY:", process.env.OPENAI_API_KEY);
+import OpenAI from 'openai';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// Function to read mock trades
-function getMockTrades() {
-  const filePath = path.join(process.cwd(), "mock-data", "trades.json");
-  if (!fs.existsSync(filePath)) {
-    console.error("Trades file not found:", filePath);
-    return [];
-  }
-  const data = fs.readFileSync(filePath, "utf-8");
-  return JSON.parse(data);
-}
+// Mock trades data
+const mockTrades = [
+  { symbol: "BTCUSDT", action: "BUY", quantity: 0.01, price: 30000, date: "2025-08-25" },
+  { symbol: "ETHUSDT", action: "BUY", quantity: 0.2, price: 1800, date: "2025-08-26" },
+  { symbol: "BTCUSDT", action: "SELL", quantity: 0.005, price: 31000, date: "2025-08-27" }
+];
 
-// Analyze trades with ChatGPT
-export async function analyzeTrades() {
-  const trades = getMockTrades();
-  if (trades.length === 0) return "No trades found";
+// Mock watchlist
+const mockWatchlist = ["BTCUSDT", "ETHUSDT", "SOLUSDT"];
+
+export async function analyzeTrades(walletAddress, symbols, userQuestion) {
+  // Filter mock trades to only include requested symbols
+  const tradesToAnalyze = mockTrades.filter(trade => symbols.includes(trade.symbol));
+
+  console.log("Loaded trades:", tradesToAnalyze);
+
+  if (!tradesToAnalyze || tradesToAnalyze.length === 0) {
+    return { message: "No trades found for the selected symbols. Let's start analyzing once you have trades!" };
+  }
 
   try {
-    console.log("Sending trades to OpenAI:", trades);
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-3.5-turbo-1106",
       messages: [
         {
           role: "system",
-          content:
-            "You are an AI trading coach. Analyze trades and return JSON with profitability, risk_level, and advice."
+          content: "You are a trading mentor AI. Be conversational, explain why certain patterns might happen, teach the user, answer questions, and review trades."
         },
         {
           role: "user",
-          content: JSON.stringify(trades)
+          content: JSON.stringify({
+            walletAddress,
+            trades: tradesToAnalyze,
+            watchlist: mockWatchlist,
+            userQuestion
+          })
         }
       ]
     });
 
-    console.log("OpenAI response object:", response);
-    const insights = response.choices?.[0]?.message?.content;
-    console.log("Insights:", insights);
-    return insights || "No insights returned";
+    const insights = response.choices[0]?.message?.content;
+
+    if (!insights) {
+      return { message: "AI did not return insights, but your mock trades loaded correctly." };
+    }
+
+    return { message: insights };
+
   } catch (err) {
-    console.error("OpenAI call failed:", err);
-    throw err; // throw so server can see exact error
+    console.error("Error calling OpenAI API:", err);
+    return { message: "Failed to analyze trades. Using mock conversational response.", error: err.message };
   }
 }
