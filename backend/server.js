@@ -1,10 +1,13 @@
 // backend/server.js
 import express from "express";
 import dotenv from "dotenv";
+dotenv.config({ path: "./.env" });
+
+// Check if the API key is loaded
+console.log("OPENAI_API_KEY:", process.env.OPENAI_API_KEY);
+
 import walletRoutes from "../frontend/src/routes/wallet.js";
 import { analyzeTrades } from "./tradeAnalyzer.js";
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
