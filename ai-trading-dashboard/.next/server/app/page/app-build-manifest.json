@@ -1,0 +1,22 @@
+{
+  "pages": {
+    "/page": [
+      "static/chunks/d7807_next_dist_c91ca17c._.js",
+      "static/chunks/ai-trading-dashboard_src_app_favicon_ico_mjs_245f5ddd._.js",
+      "static/chunks/[root-of-the-server]__2cc5eb42._.css",
+      "static/chunks/ai-trading-dashboard_src_app_layout_tsx_3958e3cb._.js",
+      "static/chunks/d7807_next_dist_client_components_builtin_global-error_df422068.js",
+      "static/chunks/d7807_next_dist_39c8a2d6._.js",
+      "static/chunks/ai-trading-dashboard_src_app_page_tsx_df422068._.js",
+      "static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_a7878d27._.js",
+      "static/chunks/d7807_next_dist_compiled_react-dom_d9c3712a._.js",
+      "static/chunks/d7807_next_dist_compiled_next-devtools_index_e3b6fe9f.js",
+      "static/chunks/d7807_next_dist_compiled_7a0ff5c1._.js",
+      "static/chunks/d7807_next_dist_client_96e70767._.js",
+      "static/chunks/d7807_next_dist_3b823fd8._.js",
+      "static/chunks/d7807_@swc_helpers_cjs_06271ea8._.js",
+      "static/chunks/ai-trading-dashboard_a0ff3932._.js",
+      "static/chunks/turbopack-ai-trading-dashboard_9e2c21cd._.js"
+    ]
+  }
+}
