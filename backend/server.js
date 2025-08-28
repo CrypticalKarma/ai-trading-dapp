@@ -12,14 +12,13 @@ app.use(express.json());
 
 // API route for conversational trading mentor
 app.post('/api/analyze', async (req, res) => {
-  const { walletAddress, symbols = [], userQuestion = "", watchlist = [] } = req.body;
+  const { userQuestion = "", symbols = [], watchlist = [] } = req.body;
 
-  if (!walletAddress) {
-    return res.status(400).json({ error: "walletAddress is required." });
-  }
+  // Wallet is now optional, pulled from session or null
+  const walletAddress = req.user?.wallet || null;
 
   try {
-    const analysis = await analyzeTrades(walletAddress, symbols, userQuestion, watchlist);
+    const analysis = await analyzeTrades(walletAddress, symbols, userQuestion);
     res.json(analysis);
   } catch (err) {
     console.error("Error in /api/analyze route:", err);
