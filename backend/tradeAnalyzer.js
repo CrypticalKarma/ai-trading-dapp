@@ -4,56 +4,70 @@ import { getWalletTrades, getWalletHoldings } from "./wallet/zerionClient.js";
 
 dotenv.config();
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-export async function analyzeTrades(walletAddress = null, symbols = [], userQuestion = "") {
+/**
+ * Analyze trades and act as a trading mentor with memory
+ * @param {string|null} walletAddress - User's wallet address (optional)
+ * @param {string[]} symbols - Array of token symbols to focus on
+ * @param {Array} messages - Chat history [{ role: "user"|"assistant"|"system", content: string }]
+ * @returns {Promise<{result: string, error?: string}>}
+ */
+export async function analyzeTrades(walletAddress = null, symbols = [], messages = []) {
   let trades = [];
   let holdings = [];
 
+  // Try to fetch wallet data if wallet provided
   if (walletAddress) {
     try {
       trades = await getWalletTrades(walletAddress);
       holdings = await getWalletHoldings(walletAddress);
     } catch (err) {
-      console.warn("Error fetching wallet data:", err);
+      console.warn("Error fetching wallet data:", err.message);
       trades = [];
       holdings = [];
     }
   }
 
-  const filteredTrades = trades.length > 0 && symbols.length > 0
-    ? trades.filter(trade => symbols.includes(trade.symbol.replace('USDT', '')))
-    : trades;
-
-  const prompt = `
-You are an AI trading mentor with a therapeutic approach.
-- The user may have no trades or holdings yet. Focus on guiding them step by step.
-- Always prioritize the user's question before adding extra commentary.
-- Ask **only one question at a time** to keep the conversation manageable.
-- Wait for the user's answer before giving more guidance.
-- Keep your tone supportive, conversational, and reflective.
-User trades: ${JSON.stringify(filteredTrades)}
+  // Core system instructions (mentor personality + memory cues)
+  const systemMessage = {
+    role: "system",
+    content: `
+You are a trading mentor who speaks like a friendly, human coach.
+Guidelines:
+- Address the user by name if it was shared in previous chats.
+- Speak naturally, encouragingly, and with empathy.
+- Ask only ONE thoughtful question at a time.
+- Use details from past messages when helpful.
+- Reference the user’s goals, style, or emotions if they’ve shared them.
+- Use wallet trades/holdings if available, but don’t overwhelm with data.
+- Keep responses short, clear, and conversational.
+User trades: ${JSON.stringify(trades)}
 User holdings: ${JSON.stringify(holdings)}
-User input: ${userQuestion}
-`;
+Symbols of focus: ${JSON.stringify(symbols)}
+`
+  };
 
-
-  console.log("Prompt being sent to OpenAI:", prompt);
+  // Merge system message with prior conversation
+  const chatMessages = [systemMessage, ...messages];
 
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: prompt }]
+      messages: chatMessages,
+      temperature: 0.7, // keep it natural + creative
+      max_tokens: 500   // keep replies concise
     });
 
-    console.log("OpenAI response:", response);
+    const mentorReply = response.choices?.[0]?.message?.content?.trim() || 
+      "I'm here and ready to guide you — what’s on your mind?";
 
-    const mentorReply = response.choices[0]?.message?.content || "No response from AI.";
     return { result: mentorReply };
   } catch (err) {
     console.error("Error calling OpenAI API:", err);
-    return { result: "AI could not generate a response.", details: err.message };
+    return {
+      result: "I wasn’t able to generate a response this time, but let’s try again.",
+      error: err.message
+    };
   }
 }
