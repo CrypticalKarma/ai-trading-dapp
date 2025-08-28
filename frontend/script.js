@@ -15,15 +15,20 @@ document.addEventListener("DOMContentLoaded", () => {
       const response = await fetch("http://localhost:3000/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userQuestion }) // only the question; backend handles wallet/watchlist
+        body: JSON.stringify({ userQuestion }) // only send question
       });
 
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}`);
+      }
+
       const data = await response.json();
-      outputDiv.innerText = data.result || JSON.stringify(data, null, 2);
+      outputDiv.innerText = data.result || "AI did not return a response.";
 
       chatInput.value = ""; // clear input after sending
     } catch (err) {
       outputDiv.innerText = `Error calling backend: ${err.message}`;
+      console.error(err);
     }
   });
 });

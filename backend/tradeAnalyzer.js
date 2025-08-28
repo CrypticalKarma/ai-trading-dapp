@@ -1,8 +1,17 @@
+import dotenv from "dotenv";
+import OpenAI from "openai";
+import { getWalletTrades, getWalletHoldings } from "./wallet/zerionClient.js";
+
+dotenv.config();
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
 export async function analyzeTrades(walletAddress = null, symbols = [], userQuestion = "") {
   let trades = [];
   let holdings = [];
 
-  // Only fetch trades/holdings if wallet is provided
   if (walletAddress) {
     try {
       trades = await getWalletTrades(walletAddress);
@@ -14,29 +23,32 @@ export async function analyzeTrades(walletAddress = null, symbols = [], userQues
     }
   }
 
-  // Filter trades if symbols provided, but only if trades exist
   const filteredTrades = trades.length > 0 && symbols.length > 0
     ? trades.filter(trade => symbols.includes(trade.symbol.replace('USDT', '')))
     : trades;
 
-  // Build the AI prompt
   const prompt = `
-You are an AI trading mentor with a therapeutic approach. 
-- Always prioritize the user's question before adding extra commentary. ${userQuestion}
-- Guide the user through their trading strategy and decisions, encouraging self-reflection.
-- Use trades and holdings only if available.
-- Explain why trades may be good/risky, discuss market context, technical analysis, psychology.
-- Encourage critical thinking; ask thought-provoking questions when it helps the user learn, but only when relevant.
-- Keep your tone supportive, conversational, educational, and reflective.
+You are an AI trading mentor with a therapeutic approach.
+- The user may have no trades or holdings yet. Focus on guiding them step by step.
+- Always prioritize the user's question before adding extra commentary.
+- Ask **only one question at a time** to keep the conversation manageable.
+- Wait for the user's answer before giving more guidance.
+- Keep your tone supportive, conversational, and reflective.
 User trades: ${JSON.stringify(filteredTrades)}
 User holdings: ${JSON.stringify(holdings)}
+User input: ${userQuestion}
 `;
+
+
+  console.log("Prompt being sent to OpenAI:", prompt);
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo-1106",
+      model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: prompt }]
     });
+
+    console.log("OpenAI response:", response);
 
     const mentorReply = response.choices[0]?.message?.content || "No response from AI.";
     return { result: mentorReply };
