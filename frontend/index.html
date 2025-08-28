@@ -2,66 +2,44 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>AI Trading Mentor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trading AI Chat</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    input, textarea, button { display: block; margin: 10px 0; width: 400px; }
-    #result { margin-top: 20px; white-space: pre-wrap; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+      background-color: #f9f9f9;
+    }
+    #userQuestion {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+    #sendBtn {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #output {
+      margin-top: 20px;
+      padding: 15px;
+      background: #fff;
+      border: 1px solid #ddd;
+      white-space: pre-wrap;
+      min-height: 100px;
+    }
   </style>
 </head>
 <body>
-  <h1>AI Trading Mentor Test</h1>
 
-  <label>Wallet Address:</label>
-  <input type="text" id="walletAddress" placeholder="0x123...">
+  <h1>Trading AI Chat</h1>
+  <input type="text" id="userQuestion" placeholder="Ask your trading AI...">
+  <button id="sendBtn">Send</button>
+  <pre id="output"></pre>
 
-  <label>Symbols (comma separated):</label>
-  <input type="text" id="symbols" placeholder="BTC,ETH,SOL">
-
-  <label>Watchlist (comma separated):</label>
-  <input type="text" id="watchlist" placeholder="ADA,BNB">
-
-  <label>Your Question:</label>
-  <textarea id="userQuestion" rows="3" placeholder="Am I trading too aggressively?"></textarea>
-
-  <button id="analyzeBtn">Analyze Trades</button>
-
-  <div id="result">Results will appear here...</div>
-
-  <script>
-    const analyzeBtn = document.getElementById('analyzeBtn');
-    const resultDiv = document.getElementById('result');
-
-    analyzeBtn.addEventListener('click', async () => {
-      const walletAddress = document.getElementById('walletAddress').value.trim();
-      const symbolsInput = document.getElementById('symbols').value.trim();
-      const watchlistInput = document.getElementById('watchlist').value.trim();
-      const userQuestion = document.getElementById('userQuestion').value.trim();
-
-      if (!walletAddress) {
-        alert("Wallet address is required.");
-        return;
-      }
-
-      const symbols = symbolsInput ? symbolsInput.split(',').map(s => s.trim()) : [];
-      const watchlist = watchlistInput ? watchlistInput.split(',').map(s => s.trim()) : [];
-
-      resultDiv.textContent = "Analyzing trades...";
-
-      try {
-        const response = await fetch('http://localhost:3000/api/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ walletAddress, symbols, watchlist, userQuestion })
-        });
-
-        const data = await response.json();
-        resultDiv.textContent = data.result || JSON.stringify(data, null, 2);
-      } catch (err) {
-        console.error(err);
-        resultDiv.textContent = "Error calling backend: " + err.message;
-      }
-    });
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
