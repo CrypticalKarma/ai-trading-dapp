@@ -10,19 +10,24 @@ const PORT = 3000;
 app.use(cors());
 app.use(express.json());
 
-// API route for conversational trading mentor
+// Conversational trading mentor route
 app.post('/api/analyze', async (req, res) => {
-  const { userQuestion = "", symbols = [], watchlist = [] } = req.body;
-
-  // Wallet is now optional, pulled from session or null
-  const walletAddress = req.user?.wallet || null;
-
   try {
+    const userQuestion = req.body.userQuestion || "";
+
+    // Optional wallet pulled from session/onboarding
+    const walletAddress = req.user?.wallet || null;
+
+    // Optional symbols (can be empty)
+    const symbols = req.body.symbols || [];
+
+    // Only call analyzeTrades; it handles empty wallet gracefully
     const analysis = await analyzeTrades(walletAddress, symbols, userQuestion);
+
     res.json(analysis);
   } catch (err) {
     console.error("Error in /api/analyze route:", err);
-    res.status(500).json({ error: "Failed to analyze trades." });
+    res.status(500).json({ error: "Server error", details: err.message });
   }
 });
 

@@ -9,14 +9,17 @@ export async function analyzeTrades(walletAddress = null, symbols = [], userQues
       holdings = await getWalletHoldings(walletAddress);
     } catch (err) {
       console.warn("Error fetching wallet data:", err);
+      trades = [];
+      holdings = [];
     }
   }
 
-  // Filter trades if symbols provided
-  const filteredTrades = symbols.length > 0
+  // Filter trades if symbols provided, but only if trades exist
+  const filteredTrades = trades.length > 0 && symbols.length > 0
     ? trades.filter(trade => symbols.includes(trade.symbol.replace('USDT', '')))
     : trades;
 
+  // Build the AI prompt
   const prompt = `
 You are an AI trading mentor with a therapeutic approach. 
 - Always prioritize the user's question before adding extra commentary. ${userQuestion}
@@ -39,6 +42,6 @@ User holdings: ${JSON.stringify(holdings)}
     return { result: mentorReply };
   } catch (err) {
     console.error("Error calling OpenAI API:", err);
-    return { result: "Error analyzing trades.", details: err.message };
+    return { result: "AI could not generate a response.", details: err.message };
   }
 }
