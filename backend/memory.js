@@ -1,12 +1,31 @@
-// Simple in-memory storage for conversation history
-const conversationMemory = new Map(); // key: userID/sessionID, value: array of messages
+import fs from "fs";
+import path from "path";
 
-export function getConversation(userId) {
-  if (!conversationMemory.has(userId)) conversationMemory.set(userId, []);
-  return conversationMemory.get(userId);
+const MEMORY_FILE = path.resolve("./ai_memory.json");
+
+/**
+ * Load memory from file (chat history + facts about user)
+ */
+export function loadMemory() {
+  if (!fs.existsSync(MEMORY_FILE)) {
+    return { messages: [] };
+  }
+  try {
+    const raw = fs.readFileSync(MEMORY_FILE, "utf-8");
+    return JSON.parse(raw);
+  } catch (err) {
+    console.error("Error loading memory:", err);
+    return { messages: [] };
+  }
 }
 
-export function addMessage(userId, role, content) {
-  const convo = getConversation(userId);
-  convo.push({ role, content });
+/**
+ * Save memory to file
+ */
+export function saveMemory(memory) {
+  try {
+    fs.writeFileSync(MEMORY_FILE, JSON.stringify(memory, null, 2), "utf-8");
+  } catch (err) {
+    console.error("Error saving memory:", err);
+  }
 }

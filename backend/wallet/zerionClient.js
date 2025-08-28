@@ -1,34 +1,62 @@
 // backend/wallet/zerionClient.js
-import fetch from 'node-fetch';
+import fetch from "node-fetch";
 
-const ZERION_API_BASE = 'https://api.zerion.io/v1'; // placeholder
-let API_KEY = process.env.ZERION_API_KEY || '';
+const ZERION_API_BASE = "https://api.zerion.io/v1"; 
+let API_KEY = process.env.ZERION_API_KEY || "";
 
-export function setApiKey(key) {
+// Simple in-memory cache
+const cache = {}; 
+
+function setApiKey(key) {
   API_KEY = key;
 }
 
-// Fetch all trades for a given wallet
-export async function getWalletTrades(walletAddress) {
-  if (!API_KEY) throw new Error('Zerion API key not set');
+// Core fetch helper
+async function fetchFromZerion(endpoint) {
+  const url = `${ZERION_API_BASE}${endpoint}`;
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Basic ${Buffer.from(API_KEY + ":").toString("base64")}`,
+    },
+  });
 
-  // Placeholder for actual Zerion call
-  // Later replace with real API endpoint
-  return [
-    { symbol: 'BTCUSDT', action: 'BUY', quantity: 0.01, price: 30000, date: '2025-08-27' },
-    { symbol: 'ETHUSDT', action: 'BUY', quantity: 0.2, price: 1800, date: '2025-08-27' },
-    { symbol: 'BTCUSDT', action: 'SELL', quantity: 0.005, price: 31000, date: '2025-08-28' }
-  ];
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Zerion API error: ${text}`);
+  }
+
+  return response.json();
 }
 
-// Fetch wallet holdings
-export async function getWalletHoldings(walletAddress) {
-  if (!API_KEY) throw new Error('Zerion API key not set');
+// Cache wrapper
+async function fetchWithCache(key, endpoint, ttl = 30000) {
+  const now = Date.now();
 
-  // Placeholder data
-  return [
-    { symbol: 'BTCUSDT', quantity: 0.005 },
-    { symbol: 'ETHUSDT', quantity: 0.2 },
-    { symbol: 'SOLUSDT', quantity: 10 }
-  ];
+  if (cache[key] && now - cache[key].timestamp < ttl) {
+    return cache[key].data;
+  }
+
+  const data = await fetchFromZerion(endpoint);
+  cache[key] = { data, timestamp: now };
+  return data;
 }
+
+// Get wallet trades
+export async function getWalletTrades(address) {
+  return fetchWithCache(
+    `trades-${address}`,
+    `/wallets/${address}/trades?page[size]=10`,
+    30000 // 30 sec cache
+  );
+}
+
+// Get wallet holdings
+export async function getWalletHoldings(address) {
+  return fetchWithCache(
+    `holdings-${address}`,
+    `/wallets/${address}/positions`,
+    60000 // 1 min cache
+  );
+}
+
+export { setApiKey };

@@ -1,34 +1,60 @@
-// frontend/script.js
-
 document.addEventListener("DOMContentLoaded", () => {
+  const chatContainer = document.getElementById("chatContainer");
   const chatInput = document.getElementById("userQuestion");
   const sendBtn = document.getElementById("sendBtn");
-  const outputDiv = document.getElementById("output");
 
-  sendBtn.addEventListener("click", async () => {
+  // Store messages locally for display
+  let chatHistory = [];
+
+  function addMessage(role, text) {
+    chatHistory.push({ role, text });
+    const messageDiv = document.createElement("div");
+    messageDiv.className = `message ${role}`;
+    messageDiv.innerText = text;
+    chatContainer.appendChild(messageDiv);
+    chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: "smooth" });
+    return messageDiv;
+  }
+
+  async function sendMessage() {
     const userQuestion = chatInput.value.trim();
     if (!userQuestion) return;
 
-    outputDiv.innerText = "Thinking...";
+    addMessage("user", userQuestion);
+    chatInput.value = "";
+
+    const typingDiv = addMessage("assistant", "Mentor is typing...");
 
     try {
       const response = await fetch("http://localhost:3000/api/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userQuestion }) // only send question
+        headers: { 
+          "Content-Type": "application/json",
+          "x-user-id": localStorage.getItem("userId") || ""
+        },
+        body: JSON.stringify({ userQuestion })
       });
 
-      if (!response.ok) {
-        throw new Error(`Server returned ${response.status}`);
-      }
-
       const data = await response.json();
-      outputDiv.innerText = data.result || "AI did not return a response.";
 
-      chatInput.value = ""; // clear input after sending
+      // Save userId for future requests
+      if (data.userId) localStorage.setItem("userId", data.userId);
+
+      typingDiv.innerText = data.result || "AI did not return a response.";
     } catch (err) {
-      outputDiv.innerText = `Error calling backend: ${err.message}`;
+      typingDiv.innerText = `Error: ${err.message}`;
       console.error(err);
+    }
+  }
+
+  // Send button
+  sendBtn.addEventListener("click", sendMessage);
+
+  // Enter key to send, Shift+Enter for new line
+  chatInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
     }
   });
 });
