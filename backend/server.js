@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { analyzeTrades } from './tradeAnalyzer.js';
-import { v4 as uuidv4 } from 'uuid';
 
 dotenv.config();
 const app = express();
@@ -11,40 +10,41 @@ const PORT = 3000;
 app.use(cors());
 app.use(express.json());
 
-// In-memory conversation store
-const conversations = {}; // { userId: [ { role, text }, ... ] }
+// In-memory user sessions
+const userSessions = new Map();
 
-// Middleware to assign a session/user ID
-app.use((req, res, next) => {
-  if (!req.headers['x-user-id']) {
-    req.userId = uuidv4(); // assign new ID if none provided
-  } else {
-    req.userId = req.headers['x-user-id'];
+function getUserSession(walletAddress) {
+  if (!userSessions.has(walletAddress)) {
+    userSessions.set(walletAddress, {
+      history: [],
+    });
   }
-  next();
-});
+  return userSessions.get(walletAddress);
+}
 
-// Conversational trading mentor route
 app.post('/api/analyze', async (req, res) => {
-  const userId = req.userId;
-  const userQuestion = req.body.userQuestion || "";
-
-  // Initialize conversation for user if needed
-  if (!conversations[userId]) conversations[userId] = [];
-
-  // Add user message to conversation
-  conversations[userId].push({ role: "user", text: userQuestion });
-
   try {
-    // Send entire conversation to AI
-    const analysis = await analyzeTrades(null, [], conversations[userId]);
+    const userQuestion = req.body.userQuestion || "";
+    const walletAddress = req.body.wallet || "guest";
 
-    // Add AI response to conversation
-    conversations[userId].push({ role: "assistant", text: analysis.result });
+    const session = getUserSession(walletAddress);
 
-    res.json({ result: analysis.result, userId });
+    // Build messages array for AI with chat history
+    const messages = session.history.map(h => [
+      { role: "user", content: h.user },
+      { role: "assistant", content: h.ai }
+    ]).flat();
+
+    messages.push({ role: "user", content: userQuestion });
+
+    const analysis = await analyzeTrades(walletAddress, [], messages);
+
+    // Save to history
+    session.history.push({ user: userQuestion, ai: analysis.result });
+
+    res.json({ result: analysis.result, memory: session });
   } catch (err) {
-    console.error("Error in /api/analyze route:", err);
+    console.error("Error in /api/analyze:", err);
     res.status(500).json({ error: "Server error", details: err.message });
   }
 });

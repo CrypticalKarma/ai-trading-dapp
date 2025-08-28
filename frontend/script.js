@@ -20,9 +20,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const userQuestion = chatInput.value.trim();
     if (!userQuestion) return;
 
+    // Show user message
     addMessage("user", userQuestion);
     chatInput.value = "";
 
+    // Typing indicator
     const typingDiv = addMessage("assistant", "Mentor is typing...");
 
     try {
@@ -56,5 +58,11 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
       sendMessage();
     }
+  });
+
+  // Auto-resize textarea
+  chatInput.addEventListener("input", () => {
+    chatInput.style.height = "auto";
+    chatInput.style.height = chatInput.scrollHeight + "px";
   });
 });

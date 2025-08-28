@@ -5,18 +5,10 @@ import { getWalletTrades, getWalletHoldings } from "./wallet/zerionClient.js";
 dotenv.config();
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-/**
- * Analyze trades with conversational memory.
- * @param {string|null} walletAddress - optional wallet address
- * @param {Array} symbols - optional symbols filter
- * @param {string} userQuestion - latest user question
- * @param {Object} session - user session object containing history, goals, etc.
- */
-export async function analyzeTrades(walletAddress = null, symbols = [], userQuestion = "", session = {}) {
+export async function analyzeTrades(walletAddress = null, symbols = [], messages = []) {
   let trades = [];
   let holdings = [];
 
-  // Only fetch wallet data if available
   if (walletAddress && walletAddress !== "guest") {
     try {
       trades = await getWalletTrades(walletAddress);
@@ -28,41 +20,23 @@ export async function analyzeTrades(walletAddress = null, symbols = [], userQues
     }
   }
 
-  // Filter trades if symbols provided
-  const filteredTrades = trades.length > 0 && symbols.length > 0
-    ? trades.filter(trade => symbols.includes(trade.symbol.replace('USDT', '')))
-    : trades;
-
-  // Build system prompt
+  // System message for context
   const systemMessage = {
     role: "system",
     content: `
-You are a friendly trading mentor AI.
-- Address the user by name if available.
-- Speak naturally, one question at a time.
-- Reference previous answers from the session memory.
-- Reflect on user's goals, emotions, and trading style.
+You are a trading mentor who speaks like a friendly coach.
+- Address the user by name if known.
+- Ask one question at a time; do not overload the user.
+- Reference past answers if available.
+- Reflect on the user's goals, emotions, and learning style.
 - Use trades and holdings only if available.
-- Keep explanations concise, educational, and supportive.
-User trades: ${JSON.stringify(filteredTrades)}
+- Keep explanations short and digestible.
+User trades: ${JSON.stringify(trades)}
 User holdings: ${JSON.stringify(holdings)}
-Session memory: ${JSON.stringify(session)}
 `
   };
 
-  // Build chat messages array: system + previous history + latest user question
-  const chatMessages = [systemMessage];
-
-  if (session.history && session.history.length > 0) {
-    // Convert past session history into AI messages
-    session.history.forEach(entry => {
-      if (entry.user) chatMessages.push({ role: "user", content: entry.user });
-      if (entry.ai?.result) chatMessages.push({ role: "assistant", content: entry.ai.result });
-    });
-  }
-
-  // Add latest user question
-  chatMessages.push({ role: "user", content: userQuestion });
+  const chatMessages = [systemMessage, ...messages];
 
   try {
     const response = await openai.chat.completions.create({
